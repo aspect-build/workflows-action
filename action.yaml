@@ -1,8 +1,7 @@
 name: Aspect Workflows
 description: |
   Delivers the promised 10x performance benefit of Bazel.
-  Includes auto-scaling "warm" runners, tuned configuration flags, remote cache and execution,
-  check Gazelle & Buildifier, continuous delivery, monitoring and metrics.
+  Auto-scaling "warm" runners, remote cache & exec, CD and more.
 branding:
   icon: triangle
   color: gray-dark
