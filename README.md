@@ -1,6 +1,8 @@
-# Run Bazel with Aspect Workflows for GitHub Actions
+# Aspect Workflows runs Bazel fastest
 
-This composite action sets up Aspect Workflows, which is a self-hosted runner infrastructure for
+Set up your GitHub Actions workflow to run Bazel using Aspect.
+
+Aspect Workflows is a self-hosted runner infrastructure for
 getting best-case performance of running Bazel on your CI/CD pipeline.
 
 See https://docs.aspect.build/v/workflows for more documentation.
@@ -10,13 +12,17 @@ See https://docs.aspect.build/v/workflows for more documentation.
 This action depends on infrastructure that's deployed by Aspect Workflows.
 First sign up for a trial: <https://aspect.build/workflows>
 
-Then, edit your `.github/workflows/ci.yaml` file to use it, for example:
+Then, edit your `.github/workflows/ci.yaml` file to use it.
+
+-   Target the Aspect-managed runners with `runs-on`, using at least `self-hosted` and `aspect-workflows` tags.
+-   Add a step, and put this action in a `uses` entry.
+
+For example:
 
 ```yaml
 jobs:
-    run-workflows:
+    bazel:
         runs-on: [self-hosted, aspect-workflows]
         steps:
-            # Check for the latest tag when you install
             - uses: aspect-build/workflows-action@v5.2.3
 ```

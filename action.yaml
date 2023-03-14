@@ -1,8 +1,11 @@
 name: Aspect Workflows
 description: |
-  Run Bazel on GitHub Actions.
-  Requires a deployment of Aspect Workflows to supply the runners.
-
+  Delivers the promised 10x performance benefit of Bazel.
+  Includes auto-scaling "warm" runners, tuned configuration flags, remote cache and execution,
+  check Gazelle & Buildifier, continuous delivery, monitoring and metrics.
+branding:
+  icon: triangle
+  color: gray-dark
 inputs:
   aspect-config:
     description: location of the Aspect Workflows config
