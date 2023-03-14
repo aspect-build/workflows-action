@@ -1,0 +1,31 @@
+name: Aspect Workflows
+description: |
+  Run Bazel on GitHub Actions.
+  Requires a deployment of Aspect Workflows to supply the runners.
+
+inputs:
+  aspect-config:
+    description: location of the Aspect Workflows config
+    required: true
+    default: .aspect/workflows/config.yaml
+  workspace-root:
+    description: path from the git repository to the WORKSPACE.bazel file
+    required: true
+    default: '.'
+  rosetta-bin:
+    description: command to invoke the rosetta binary
+    required: true
+    # The default assumes that rosetta is on the $PATH
+    default: rosetta
+
+# Run rosetta to produce the steps, then invoke them
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '14'
+    - run: mkdir __aspect_generated__; ${{ inputs.rosetta-bin }} steps --configuration ${{ inputs.aspect-config }} --workspace ${{ inputs.workspace-root }} | tee ./__aspect_generated__/action.yaml
+      shell: bash
+    - uses: ./__aspect_generated__
