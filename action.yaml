@@ -25,9 +25,6 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '14'
     - run: mkdir __aspect_generated__; ${{ inputs.rosetta-bin }} steps --configuration ${{ inputs.aspect-config }} --workspace ${{ inputs.workspace-root }} | tee ./__aspect_generated__/action.yaml
       shell: bash
     - uses: ./__aspect_generated__
