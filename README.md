@@ -24,5 +24,5 @@ jobs:
     bazel:
         runs-on: [self-hosted, aspect-workflows]
         steps:
-            - uses: aspect-build/workflows-action@v5.2.6
+            - uses: aspect-build/workflows-action@5.2.6
 ```
