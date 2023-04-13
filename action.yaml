@@ -6,25 +6,43 @@ branding:
   icon: triangle
   color: gray-dark
 inputs:
-  aspect-config:
+  configuration:
     description: location of the Aspect Workflows config
     required: true
     default: .aspect/workflows/config.yaml
-  workspace-root:
+  workspace:
     description: path from the git repository to the WORKSPACE.bazel file
     required: true
     default: '.'
-  rosetta-bin:
-    description: command to invoke the rosetta binary
+  task:
+    description: the task that we want to generate steps for and then run
     required: true
-    # The default assumes that rosetta is on the $PATH
-    default: rosetta
+  has_artifact_output:
+    description: |
+      Whether to expect upload_artifact_path= lines in the $GITHUB_OUTPUT file from rosetta.
+      Equivalent to whether the task calls archiveArtifacts on the github.host.
 
-# Run rosetta to produce the steps, then invoke them
 runs:
+  # Declare this is a "Composite Action"
   using: "composite"
+
   steps:
-    - uses: actions/checkout@v3
-    - run: mkdir __aspect_generated__; ${{ inputs.rosetta-bin }} steps --configuration ${{ inputs.aspect-config }} --workspace ${{ inputs.workspace-root }} | tee ./__aspect_generated__/action.yaml
+
+    # Simple wrapper around running rosetta
+    - run: |
+        rosetta run \
+          --configuration ${{ inputs.configuration }} \
+          --workspace ${{ inputs.workspace }} \
+          ${{ inputs.task }}
       shell: bash
-    - uses: ./__aspect_generated__
+      id: rosetta-step
+
+    # Uploads a zip file containing all archiveArtifact paths.
+    # e.g. "test.artifacts.zip" will be in the Summary page on GHA UI.
+    - name: Upload Artifact
+      # Note, GHA will coerce boolean to string
+      if: ${{ inputs.has_artifact_output == 'true' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.task }}.artifacts
+        path: ${{ steps.rosetta-step.outputs.upload_artifact_path }}

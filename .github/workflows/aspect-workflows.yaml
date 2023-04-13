@@ -1,0 +1,82 @@
+name: Aspect Workflows CI
+
+on:
+  # Makes this workflow reusable, see
+  # https://github.blog/2022-02-10-using-reusable-workflows-github-actions
+  workflow_call:
+    inputs:
+      aspect-config:
+        description: path to the Aspect Workflows config.yaml file
+        type: string
+        default: .aspect/workflows/config.yaml
+      delivery-workflow:
+        description: the name of the file which contains the delivery workflow
+        type: string
+        default: delivery.yaml
+
+jobs:
+  setup:
+    runs-on: [self-hosted, aspect-workflows]
+    steps:
+      - uses: actions/checkout@v3
+      - id: rosetta-generate
+        run: |
+          echo "json=$( \
+            rosetta steps \
+            --configuration ${{ inputs.aspect-config }} \
+            --workspace . \
+            --gha_task generate \
+            --gha_json_pretty_print=false \
+          )" | tee ${GITHUB_OUTPUT}
+
+    outputs:
+      cfg: ${{ steps.rosetta-generate.outputs.json }}
+
+  bazel:
+    needs: [setup]
+    runs-on: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].labels }}
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.cfg).matrix_config }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Configure environment :aspect:"
+        run: configure_workflows_env
+
+      - name: "Agent health checks :stethoscope:"
+        run: agent_health_check
+
+      - name: "Branch Freshness :git:"
+        uses: aspect-build/workflows-action@5.3.3
+        with:
+          configuration: ${{ inputs.aspect-config }}
+          workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
+          task: branch_freshness
+
+      - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
+        uses: aspect-build/workflows-action@5.3.3
+        with:
+            configuration: ${{ inputs.aspect-config }}
+            workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
+            task: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
+
+      - name: Delivery Manifest
+        if: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest }}
+        uses: aspect-build/workflows-action@5.3.3
+        with:
+            configuration: ${{ inputs.aspect-config }}
+            workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
+            task: delivery_manifest
+            has_artifact_output: true
+      - name: Trigger Delivery 
+        # This uses the following API: https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
+        run: |
+          curl \
+            -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ inputs.delivery-workflow }}/dispatches \
+            -d "{\"ref\":\"${{ fromJson(inputs.config).branch }}\",\"inputs\":{\"delivery_commit\":\"${GITHUB_SHA}\"}}"
+        shell: bash
+        if: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery }}

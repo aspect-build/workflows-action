@@ -12,17 +12,12 @@ See https://docs.aspect.build/v/workflows for more documentation.
 This action depends on infrastructure that's deployed by Aspect Workflows.
 First sign up for a trial: <https://aspect.build/workflows>
 
-Then, edit your `.github/workflows/ci.yaml` file to use it.
-
--   Target the Aspect-managed runners with `runs-on`, using at least `self-hosted` and `aspect-workflows` tags.
--   Add a step, and put this action in a `uses` entry.
-
-For example:
+Then, edit your `.github/workflows/ci.yaml` file to use our reusable workflow.
+It reads your `.aspect/workflows/config.yaml` to understand your Bazel CI preferences for this repo.
 
 ```yaml
 jobs:
-    bazel:
-        runs-on: [self-hosted, aspect-workflows]
-        steps:
-            - uses: aspect-build/workflows-action@5.2.6
+  aspect-workflows:
+    name: Aspect Workflows
+    uses: aspect-build/workflows-action/.github/workflows/aspect-workflows.yamlv5.3.3
 ```
