@@ -19,5 +19,5 @@ It reads your `.aspect/workflows/config.yaml` to understand your Bazel CI prefer
 jobs:
   aspect-workflows:
     name: Aspect Workflows
-    uses: aspect-build/workflows-action/.github/workflows/aspect-workflows.yamlv5.3.3
+    uses: aspect-build/workflows-action/.github/workflows/aspect-workflows.yaml@5.3.3
 ```
