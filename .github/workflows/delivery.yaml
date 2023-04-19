@@ -1,0 +1,42 @@
+# Copy this file into your repository at the same path.
+name: Delivery
+on:
+  # Allow this to be triggered manually via the GH UI. See
+  # https://docs.aspect.build/v/workflows/delivery#break-glass-deliver-on-red
+  workflow_dispatch:
+    inputs:
+      delivery_commit:
+        description: commit to run
+        type: string
+        required: true
+      delivery_targets:
+        description: targets to run
+        type: string
+        required: false
+
+jobs:
+  delivery:
+    name: Delivery
+    # Note: you could add another tag here to select "privileged" runners if you configure
+    # the default runners not to have have push permission
+    runs-on: [self-hosted, aspect-workflows]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.delivery_commit }}
+          # Fetch all history for all tags and branches, so the --workspace_status_command can find
+          # any tags that it needs for `git describe`.
+          # See https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
+          fetch-depth: 0
+      - name: Configure environment
+        run: configure_workflows_env
+      - name: Agent health checks
+        run: agent_health_check
+
+      - name: Run Delivery
+        uses: aspect-build/workflows-action@5.3.4
+        with:
+          task: delivery
+        env:
+          DELIVERY_COMMIT: ${{ inputs.delivery_commit }}
+          DELIVERY_TARGETS: ${{ inputs.delivery_targets }}

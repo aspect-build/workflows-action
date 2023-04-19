@@ -13,6 +13,9 @@ on:
         description: the name of the file which contains the delivery workflow
         type: string
         default: delivery.yaml
+    secrets:
+      slack_webhook_url:
+        description: if set, then a webhook notification will be sent for failing builds on a release branch
 
 jobs:
   setup:
@@ -41,34 +44,48 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: "Configure environment :aspect:"
+      - name: Configure environment
         run: configure_workflows_env
 
-      - name: "Agent health checks :stethoscope:"
+      - name: Agent health checks
         run: agent_health_check
 
-      - name: "Branch Freshness :git:"
-        uses: aspect-build/workflows-action@5.3.3
+      - name: Branch Freshness
+        uses: aspect-build/workflows-action@5.3.4
         with:
           configuration: ${{ inputs.aspect-config }}
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: branch_freshness
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.3.3
+        uses: aspect-build/workflows-action@5.3.4
         with:
             configuration: ${{ inputs.aspect-config }}
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
 
+      - name: Send notification to Slack workflow
+        id: slack
+        # oncall cares about branches that do delivery, so key this on whether we produce a delivery manifest
+        if: failure() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "gha_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+
       - name: Delivery Manifest
-        if: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest }}
-        uses: aspect-build/workflows-action@5.3.3
+        if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
+        uses: aspect-build/workflows-action@5.3.4
         with:
             configuration: ${{ inputs.aspect-config }}
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: delivery_manifest
             has_artifact_output: true
+
       - name: Trigger Delivery 
         # This uses the following API: https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
         run: |
@@ -77,6 +94,6 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ inputs.delivery-workflow }}/dispatches \
-            -d "{\"ref\":\"${{ fromJson(inputs.config).branch }}\",\"inputs\":{\"delivery_commit\":\"${GITHUB_SHA}\"}}"
+            -d "{\"ref\":\"${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].branch }}\",\"inputs\":{\"delivery_commit\":\"${GITHUB_SHA}\"}}"
         shell: bash
-        if: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery }}
+        if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery
