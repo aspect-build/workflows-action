@@ -31,10 +31,11 @@ runs:
     # Simple wrapper around running rosetta
     - run: |
         rosetta run \
-          --configuration ${{ inputs.configuration }} \
           --workspace ${{ inputs.workspace }} \
           ${{ inputs.task }}
       shell: bash
+      env:
+        ROSETTA_CONFIGURATION: ${{ inputs.configuration }}
       id: rosetta-step
 
     # Uploads a zip file containing all archiveArtifact paths.

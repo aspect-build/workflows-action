@@ -17,10 +17,12 @@ on:
 jobs:
   delivery:
     name: Delivery
-    # Note: you could add another tag here to select "privileged" runners if you configure
-    # the default runners not to have have push permission
-    runs-on: [self-hosted, aspect-workflows]
+    # Note: you could set the runner "queue" tag here to select non-default "privileged" runners if
+    # you configure the default runners not to have have push permission.
+    runs-on: [self-hosted, aspect-workflows, aspect-default]
     steps:
+      - name: Configure environment
+        run: configure_workflows_env
       - uses: actions/checkout@v3
         with:
           ref: ${{ inputs.delivery_commit }}
@@ -28,15 +30,13 @@ jobs:
           # any tags that it needs for `git describe`.
           # See https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
           fetch-depth: 0
-      - name: Configure environment
-        run: configure_workflows_env
       - name: Agent health checks
         run: agent_health_check
-
       - name: Run Delivery
-        uses: aspect-build/workflows-action@5.3.4
+        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
         with:
           task: delivery
+          aspect-config: .aspect/workflows/config_gha_aws.yaml
         env:
           DELIVERY_COMMIT: ${{ inputs.delivery_commit }}
           DELIVERY_TARGETS: ${{ inputs.delivery_targets }}

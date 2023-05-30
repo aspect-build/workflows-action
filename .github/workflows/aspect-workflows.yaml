@@ -13,13 +13,17 @@ on:
         description: the name of the file which contains the delivery workflow
         type: string
         default: delivery.yaml
+      queue:
+        description: the queue / runner pool that the setup step will run on
+        type: string
+        default: default
     secrets:
       slack_webhook_url:
         description: if set, then a webhook notification will be sent for failing builds on a release branch
 
 jobs:
   setup:
-    runs-on: [self-hosted, aspect-workflows]
+    runs-on: [self-hosted, aspect-workflows, "aspect-${{ inputs.queue }}"]
     steps:
       - uses: actions/checkout@v3
       - id: rosetta-generate
@@ -40,25 +44,27 @@ jobs:
     runs-on: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].labels }}
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.cfg).matrix_config }}
+    env:
+      ROSETTA_CONFIGURATION: ${{ inputs.aspect-config }}
 
     steps:
-      - uses: actions/checkout@v3
-
       - name: Configure environment
         run: configure_workflows_env
+
+      - uses: actions/checkout@v3
 
       - name: Agent health checks
         run: agent_health_check
 
       - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.3.4
+        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
         with:
           configuration: ${{ inputs.aspect-config }}
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: branch_freshness
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.3.4
+        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
         with:
             configuration: ${{ inputs.aspect-config }}
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
@@ -79,7 +85,7 @@ jobs:
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.3.4
+        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
         with:
             configuration: ${{ inputs.aspect-config }}
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
