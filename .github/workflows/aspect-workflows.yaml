@@ -17,9 +17,12 @@ on:
         description: the queue / runner pool that the setup step will run on
         type: string
         default: default
-    secrets:
       slack_webhook_url:
-        description: if set, then a webhook notification will be sent for failing builds on a release branch
+        description: 'if set, then a webhook notification will be sent for failing builds on a release branch. Input should match the name of a secret. "secrets: inherit" must also be set'
+        type: string
+      inherited_secrets:
+        description: 'comma separated list of secrets to pass into the task. "secrets: inherit" must also be set.'
+        type: string
 
 jobs:
   setup:
@@ -56,14 +59,23 @@ jobs:
       - name: Agent health checks
         run: agent_health_check
 
+      - name: Process Secrets
+        id: process_secrets
+        if: inputs.inherited_secrets != ''
+        run: |
+          REQUIRED_SECRETS=$(jq -R --compact-output 'gsub("\\s+";"";"g") | split(",")' <<< "${{ inputs.inherited_secrets }}")
+          FILTERED_SECRETS=$(jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key == ($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
+          echo "filtered_secrets=${FILTERED_SECRETS}" | tee ${GITHUB_OUTPUT}
+
       - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.5.0-rc1
+        uses: aspect-build/workflows-action@5.5.0-rc2
         with:
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: branch_freshness
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.5.0-rc1
+        uses: aspect-build/workflows-action@5.5.0-rc2
+        env: ${{ inputs.inherited_secrets != '' && fromJson(steps.process_secrets.outputs.filtered_secrets) || fromJson('{}') }}
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
@@ -71,7 +83,7 @@ jobs:
       - name: Send notification to Slack workflow
         id: slack
         # oncall cares about branches that do delivery, so key this on whether we produce a delivery manifest
-        if: failure() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
+        if: inputs.slack_webhook_url != '' && failure() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
@@ -79,11 +91,11 @@ jobs:
               "gha_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_URL: ${{ secrets[inputs.slack_webhook_url] }}
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.5.0-rc1
+        uses: aspect-build/workflows-action@5.5.0-rc2
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: delivery_manifest
