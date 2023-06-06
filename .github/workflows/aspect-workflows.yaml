@@ -30,7 +30,7 @@ jobs:
         run: |
           echo "json=$( \
             rosetta steps \
-            --configuration ${{ inputs.aspect-config }} \
+            --config ${{ inputs.aspect-config }} \
             --workspace . \
             --gha_task generate \
             --gha_json_pretty_print=false \
@@ -45,7 +45,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.cfg).matrix_config }}
     env:
-      ROSETTA_CONFIGURATION: ${{ inputs.aspect-config }}
+      ASPECT_WORKFLOWS_CONFIG: ${{ inputs.aspect-config }}
 
     steps:
       - name: Configure environment
@@ -57,16 +57,14 @@ jobs:
         run: agent_health_check
 
       - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
+        uses: aspect-build/workflows-action@5.5.0-rc0
         with:
-          configuration: ${{ inputs.aspect-config }}
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: branch_freshness
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
+        uses: aspect-build/workflows-action@5.5.0-rc0
         with:
-            configuration: ${{ inputs.aspect-config }}
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
 
@@ -74,7 +72,7 @@ jobs:
         id: slack
         # oncall cares about branches that do delivery, so key this on whether we produce a delivery manifest
         if: failure() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
             {
@@ -85,9 +83,8 @@ jobs:
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
+        uses: aspect-build/workflows-action@5.5.0-rc0
         with:
-            configuration: ${{ inputs.aspect-config }}
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: delivery_manifest
             has_artifact_output: true

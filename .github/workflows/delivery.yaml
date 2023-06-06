@@ -20,6 +20,8 @@ jobs:
     # Note: you could set the runner "queue" tag here to select non-default "privileged" runners if
     # you configure the default runners not to have have push permission.
     runs-on: [self-hosted, aspect-workflows, aspect-default]
+    env:
+      ASPECT_WORKFLOWS_CONFIG: .aspect/workflows/config_gha_aws.yaml
     steps:
       - name: Configure environment
         run: configure_workflows_env
@@ -33,10 +35,9 @@ jobs:
       - name: Agent health checks
         run: agent_health_check
       - name: Run Delivery
-        uses: aspect-build/workflows-action@5.4.12-dev.23.g1efd33a
+        uses: aspect-build/workflows-action@5.5.0-rc0
         with:
           task: delivery
-          aspect-config: .aspect/workflows/config_gha_aws.yaml
         env:
           DELIVERY_COMMIT: ${{ inputs.delivery_commit }}
           DELIVERY_TARGETS: ${{ inputs.delivery_targets }}

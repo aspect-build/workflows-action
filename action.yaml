@@ -6,10 +6,6 @@ branding:
   icon: triangle
   color: gray-dark
 inputs:
-  configuration:
-    description: location of the Aspect Workflows config
-    required: true
-    default: .aspect/workflows/config.yaml
   workspace:
     description: path from the git repository to the WORKSPACE.bazel file
     required: true
@@ -34,8 +30,6 @@ runs:
           --workspace ${{ inputs.workspace }} \
           ${{ inputs.task }}
       shell: bash
-      env:
-        ROSETTA_CONFIGURATION: ${{ inputs.configuration }}
       id: rosetta-step
 
     # Uploads a zip file containing all archiveArtifact paths.
