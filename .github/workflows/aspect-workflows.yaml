@@ -57,13 +57,13 @@ jobs:
         run: agent_health_check
 
       - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.5.0-rc0
+        uses: aspect-build/workflows-action@5.5.0-rc1
         with:
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: branch_freshness
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.5.0-rc0
+        uses: aspect-build/workflows-action@5.5.0-rc1
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
@@ -83,7 +83,7 @@ jobs:
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.5.0-rc0
+        uses: aspect-build/workflows-action@5.5.0-rc1
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: delivery_manifest
