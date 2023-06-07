@@ -21,7 +21,7 @@ on:
         description: 'if set, then a webhook notification will be sent for failing builds on a release branch. Input should match the name of a secret. "secrets: inherit" must also be set'
         type: string
       inherited_secrets:
-        description: 'comma separated list of secrets to pass into the task. "secrets: inherit" must also be set.'
+        description: 'comma separated list of secrets or regex (Oniguruma) describing secrets to be made available during the build. "secrets: inherit" must also be set. The regex is used by jq internally which uses the Oniguruma regular expression library: https://jqlang.github.io/jq/manual/'
         type: string
 
 jobs:
@@ -64,17 +64,17 @@ jobs:
         if: inputs.inherited_secrets != ''
         run: |
           REQUIRED_SECRETS=$(jq -R --compact-output 'gsub("\\s+";"";"g") | split(",")' <<< "${{ inputs.inherited_secrets }}")
-          FILTERED_SECRETS=$(jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key == ($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
+          FILTERED_SECRETS=$(jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key | test($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
           echo "filtered_secrets=${FILTERED_SECRETS}" | tee ${GITHUB_OUTPUT}
 
       - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.5.0-rc2
+        uses: aspect-build/workflows-action@5.5.0-rc3
         with:
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: branch_freshness
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.5.0-rc2
+        uses: aspect-build/workflows-action@5.5.0-rc3
         env: ${{ inputs.inherited_secrets != '' && fromJson(steps.process_secrets.outputs.filtered_secrets) || fromJson('{}') }}
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
@@ -95,7 +95,7 @@ jobs:
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.5.0-rc2
+        uses: aspect-build/workflows-action@5.5.0-rc3
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: delivery_manifest
