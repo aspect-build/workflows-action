@@ -10,7 +10,7 @@ on:
         type: string
         required: true
       delivery_targets:
-        description: targets to run
+        description: targets to run, delimited by comma and/or space
         type: string
         required: false
 
@@ -35,7 +35,7 @@ jobs:
       - name: Agent health checks
         run: agent_health_check
       - name: Run Delivery
-        uses: aspect-build/workflows-action@5.5.0
+        uses: aspect-build/workflows-action@5.5.3
         with:
           task: delivery
         env:
