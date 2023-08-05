@@ -35,7 +35,7 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 jobs:
   aspect-workflows:
     name: Aspect Workflows
-    uses: my-org/workflows-action/.github/workflows/aspect-workflows.yaml@5.6.2
+    uses: my-org/workflows-action/.github/workflows/aspect-workflows.yaml@5.6.3
 ```
 
 If you vendored the file, then instead it will be:
