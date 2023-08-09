@@ -33,18 +33,18 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 
 ```yaml
 jobs:
-  aspect-workflows:
-    name: Aspect Workflows
-    uses: my-org/workflows-action/.github/workflows/aspect-workflows.yaml@5.6.4
+    aspect-workflows:
+        name: Aspect Workflows
+        uses: my-org/workflows-action/.github/workflows/aspect-workflows.yaml@5.7.0-rc0
 ```
 
 If you vendored the file, then instead it will be:
 
 ```yaml
 jobs:
-  aspect-workflows:
-    name: Aspect Workflows
-    uses: ./.github/workflows/aspect-workflows.yaml
+    aspect-workflows:
+        name: Aspect Workflows
+        uses: ./.github/workflows/aspect-workflows.yaml
 ```
 
 You may want to start out with Aspect Workflows only triggering on certain branches during the trial.
@@ -52,8 +52,8 @@ You can use an `if` statement like the following to run on `main` and on pull re
 
 ```yaml
 jobs:
-  aspect-workflows:
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'aspect-build/')
+    aspect-workflows:
+        if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'aspect-build/')
 ```
 
 ## Continuous delivery
