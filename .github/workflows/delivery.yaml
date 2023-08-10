@@ -35,7 +35,7 @@ jobs:
       - name: Agent health checks
         run: agent_health_check
       - name: Run Delivery
-        uses: aspect-build/workflows-action@5.7.0-rc1
+        uses: aspect-build/workflows-action@5.7.0-rc2
         with:
           task: delivery
         env:
