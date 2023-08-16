@@ -10,20 +10,8 @@ inputs:
     description: path from the git repository to the WORKSPACE.bazel file
     required: true
     default: '.'
-  artifact_prefix:
-    description: prefix to use for artifact name
-    required: true
-    default: ''
   task:
     description: the task that we want to generate steps for and then run
-    required: true
-  has_artifact_output:
-    description: |
-      Whether to expect upload_artifact_path= lines in the $GITHUB_OUTPUT file from rosetta.
-      Equivalent to whether the task calls archiveArtifacts on the github.host.
-  artifact_upload_pattern:
-    description: Newline-delimited string pattern to be passed as the `path` input to upload-action.
-    default: ''
     required: true
 
 runs:
@@ -38,14 +26,3 @@ runs:
           ${{ inputs.task }}
       shell: bash
       id: rosetta-step
-
-    # Upload all artifacts for the workspace
-    - name: Upload Artifact
-      # The `always()` condition is required to ensure this step runs even if the previous
-      # step fails. Note that setting `continue-on-error: true` on the previous
-      # step is not ideal as GitHub will misleadingly flag the step as having passed.
-      if: ${{ always() && inputs.has_artifact_output == 'true' }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ inputs.artifact_prefix }}${{ inputs.task }}.artifacts
-        path: ${{ inputs.artifact_upload_pattern }}
