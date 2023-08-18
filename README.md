@@ -22,7 +22,7 @@ From [GitHub docs](https://docs.github.com/en/actions/using-workflows/reusing-wo
 
 For this reason, we recommend you fork this repository into your GitHub org.
 Alternatively, you can vendor the file into your monorepo by copying
-`.github/workflows/aspect-workflows.yaml` into the same path in your repo.
+`.github/workflows/.aspect-workflows-reusable.yaml` into the same path in your repo.
 
 ## Usage
 
@@ -35,7 +35,7 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 jobs:
     aspect-workflows:
         name: Aspect Workflows
-        uses: my-org/workflows-action/.github/workflows/aspect-workflows.yaml@5.7.0-rc4
+        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.7.0-rc5
 ```
 
 If you vendored the file, then instead it will be:
@@ -44,7 +44,7 @@ If you vendored the file, then instead it will be:
 jobs:
     aspect-workflows:
         name: Aspect Workflows
-        uses: ./.github/workflows/aspect-workflows.yaml
+        uses: ./.github/workflows/.aspect-workflows-reusable.yaml
 ```
 
 You may want to start out with Aspect Workflows only triggering on certain branches during the trial.
@@ -55,20 +55,6 @@ jobs:
     aspect-workflows:
         if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'aspect-build/')
 ```
-
-## Continuous delivery
-
-See https://docs.aspect.build/v/workflows/delivery for an overview of how Continuous Delivery is
-modeled in Aspect Workflows.
-
-To run a delivery job with GitHub Actions, create another workflow file.
-By default we look for `delivery.yaml`.
-
-See the `delivery.yaml` file in this repository for an example.
-Copy this file into your `.github/workflows` folder, then modify as needed.
-
-For example, you might need to run a step that does authentication, using a GitHub Action like
-`aws-actions/configure-aws-credentials` or `docker/login-action`.
 
 ## Slack notifications
 
