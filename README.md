@@ -1,3 +1,6 @@
+> [!WARNING]  
+> This repo is now archived and the code has been [moved](https://github.com/AssemblyAI/DeepLearning/blob/master/.github/workflows/.aspect-workflows-reusable.yaml) to the DL repo.
+
 # Aspect Workflows runs Bazel fastest
 
 Set up your GitHub Actions workflow to run Bazel using Aspect.
