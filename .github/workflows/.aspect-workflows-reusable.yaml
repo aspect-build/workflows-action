@@ -1,7 +1,7 @@
 # ==================================================================================================
-# Aspect Workflows Reusable Workflow for GitHub Actions (v5.7.10)
+# Aspect Workflows Reusable Workflow for GitHub Actions (v5.8.1)
 #
-# https://github.com/marketplace/actions/aspect-workflows?version=5.7.10
+# https://github.com/marketplace/actions/aspect-workflows?version=5.8.1
 #
 # At this time, GitHub Actions does not allow referencing reusable workflows from public
 # repositories in other organizations. See
@@ -37,10 +37,10 @@
 #    jobs:
 #      aspect-workflows:
 #        name: Aspect Workflows
-#        uses: my-github-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.7.10
+#        uses: my-github-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.8.1
 #    ```
 # ==================================================================================================
-name: Aspect Workflows Reusable Workflow (v5.7.10)
+name: Aspect Workflows Reusable Workflow (v5.8.1)
 
 on:
   # Makes this workflow reusable, see
@@ -106,12 +106,12 @@ jobs:
         id: process_secrets
         if: inputs.inherited_secrets != ''
         run: |
-          REQUIRED_SECRETS=$(jq -R --compact-output 'gsub("\\s+";"";"g") | split(",")' <<< "${{ inputs.inherited_secrets }}")
-          FILTERED_SECRETS=$(jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key | test($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
+          REQUIRED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq -R --compact-output 'gsub("\\s+";"";"g") | split(",")' <<< "${{ inputs.inherited_secrets }}")
+          FILTERED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key | test($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
           echo "filtered_secrets=${FILTERED_SECRETS}" | tee ${GITHUB_OUTPUT}
 
       - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.7.10
+        uses: aspect-build/workflows-action@5.8.1
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).task_config[fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace].tasks['branch_freshness'].timeout_in_minutes }}
         with:
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
@@ -121,7 +121,7 @@ jobs:
         run: rm -rf ${{ join(fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_paths, ' ') }}
 
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.7.10
+        uses: aspect-build/workflows-action@5.8.1
         env: ${{ inputs.inherited_secrets != '' && fromJson(steps.process_secrets.outputs.filtered_secrets) || fromJson('{}') }}
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].timeout_in_minutes }}
         with:
@@ -143,7 +143,7 @@ jobs:
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.7.10
+        uses: aspect-build/workflows-action@5.8.1
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).task_config[fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace].tasks['delivery'].timeout_in_minutes }}
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
@@ -151,15 +151,29 @@ jobs:
 
       # Upload all artifacts for the workspace
       - name: Upload Artifact
-        # The `always()` condition is required to ensure this step runs even if the previous
-        # step fails. Note that setting `continue-on-error: true` on the previous
-        # step is not ideal as GitHub will misleadingly flag the step as having passed.
+        # The `always()` condition makes this step run even if a previous step failed.
+        # Setting `continue-on-error: true` on previous steps isn't ideal as the UI
+        # will flag them as having passed even if they failed.
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_prefix }}${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}.artifacts
           path: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_upload_pattern }}
 
+      # Codecov
+      - name: Codecov Upload
+        # The `always()` condition makes this step run even if a previous step failed.
+        # Setting `continue-on-error: true` on previous steps isn't ideal as the UI
+        # will flag them as having passed even if they failed.
+        if: ${{ always() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].codecov_upload }}
+        # https://github.com/marketplace/actions/codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: bazel-out/_coverage/_coverage_report.dat
+          token: ${{ secrets.CODECOV_TOKEN }}
+          functionalities: search # Disable searching for coverage reports. If enabled, it gets confused
+                                  # by the bazel convenience symlinks and finds the same coverage report
+                                  # under bazel-out and {workspace}/bazel-out.
       - name: Trigger Delivery
         # This uses the following API: https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
         run: |
