@@ -5,7 +5,7 @@ Set up your GitHub Actions workflow to run Bazel using Aspect.
 Aspect Workflows is a self-hosted runner infrastructure for
 getting best-case performance of running Bazel on your CI/CD pipeline.
 
-See https://docs.aspect.build/v/workflows for more documentation.
+See https://docs.aspect.build/workflows for more documentation.
 
 ## Setup
 
@@ -35,7 +35,7 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 jobs:
     aspect-workflows:
         name: Aspect Workflows
-        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.8.13
+        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.9.0-alpha.1
 ```
 
 If you vendored the file, then instead it will be:
