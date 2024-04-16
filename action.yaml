@@ -13,10 +13,6 @@ inputs:
   task:
     description: the task that we want to generate steps for and then run
     required: true
-  args:
-    description: additional arguments to be passed to the task instance
-    required: false
-    default: ''
 
 runs:
   # Declare this is a "Composite Action"
@@ -27,7 +23,6 @@ runs:
     - run: |
         rosetta run \
           --workspace ${{ inputs.workspace }} \
-          ${{ inputs.task }} \
-          ${{ inputs.args }}
+          ${{ inputs.task }}
       shell: bash
       id: rosetta-step
