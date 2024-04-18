@@ -1,7 +1,7 @@
 # ==================================================================================================
-# Aspect Workflows Reusable Workflow for GitHub Actions (v5.8.22)
+# Aspect Workflows Reusable Workflow for GitHub Actions (v5.10.0-alpha.7)
 #
-# https://github.com/marketplace/actions/aspect-workflows?version=5.8.22
+# https://github.com/marketplace/actions/aspect-workflows?version=5.10.0-alpha.7
 #
 # At this time, GitHub Actions does not allow referencing reusable workflows from public
 # repositories in other organizations. See
@@ -37,10 +37,10 @@
 #    jobs:
 #      aspect-workflows:
 #        name: Aspect Workflows
-#        uses: my-github-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.8.22
+#        uses: my-github-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.10.0-alpha.7
 #    ```
 # ==================================================================================================
-name: Aspect Workflows Reusable Workflow (v5.8.22)
+name: Aspect Workflows Reusable Workflow (v5.10.0-alpha.7)
 
 on:
   # Makes this workflow reusable, see
@@ -73,12 +73,13 @@ jobs:
       - uses: actions/checkout@v4
       - id: rosetta-generate
         run: |
-          echo "json=$( \
+          ROSETTA_RESULT=$( \
             rosetta steps \
             --config ${{ inputs.aspect-config }} \
             --gha_task generate \
             --gha_json_pretty_print=false \
-          )" | tee ${GITHUB_OUTPUT}
+          )
+          tee "${GITHUB_OUTPUT}" <<< "json=${ROSETTA_RESULT}"
 
     outputs:
       cfg: ${{ steps.rosetta-generate.outputs.json }}
@@ -87,6 +88,7 @@ jobs:
     needs: [setup]
     runs-on: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].labels }}
     strategy:
+      fail-fast: false
       matrix: ${{ fromJson(needs.setup.outputs.cfg).matrix_config }}
     env:
       ASPECT_WORKFLOWS_CONFIG: ${{ inputs.aspect-config }}
@@ -100,7 +102,7 @@ jobs:
 
       - name: Agent health checks
         run: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/agent_health_check
-        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).task_config[fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace].tasks['bazel_health_probe'].timeout_in_minutes }}
+        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].health_check_timeout }}
 
       - name: Process Secrets
         id: process_secrets
@@ -110,18 +112,27 @@ jobs:
           FILTERED_SECRETS=$(${{ fromJson(needs.setup.outputs.cfg).platform.directories.WORKFLOWS_BIN_DIR }}/jq --compact-output --argjson secrets "${REQUIRED_SECRETS}" 'with_entries( select (.key | test($secrets[]) ) )' <<< '''${{ toJson(secrets) }}''' )
           echo "filtered_secrets=${FILTERED_SECRETS}" | tee ${GITHUB_OUTPUT}
 
-      - name: Branch Freshness
-        uses: aspect-build/workflows-action@5.8.22
-        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).task_config[fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace].tasks['branch_freshness'].timeout_in_minutes }}
-        with:
-          workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
-          task: branch_freshness
-
       - name: Prepare archive directories
         run: rm -rf ${{ join(fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_paths, ' ') }}
 
-      - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}
-        uses: aspect-build/workflows-action@5.8.22
+      - name: Determine changed files
+        uses: tj-actions/changed-files@v42
+        if: endsWith(matrix.job, 'format')
+        with:
+          json: true
+          write_output_files: true
+          output_dir: ${{ fromJson(needs.setup.outputs.cfg).platform.directories.ARTIFACTS_DIR }}
+
+      - name: Checkout Health
+        uses: aspect-build/workflows-action@5.10.0-alpha.7
+        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].checkout_task_timeout }}
+        if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].has_checkout_task
+        with:
+          workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
+          task: checkout
+
+      - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].name }}
+        uses: aspect-build/workflows-action@5.10.0-alpha.7
         env: ${{ inputs.inherited_secrets != '' && fromJson(steps.process_secrets.outputs.filtered_secrets) || fromJson('{}') }}
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].timeout_in_minutes }}
         with:
@@ -132,7 +143,7 @@ jobs:
         id: slack
         # oncall cares about branches that do delivery, so key this on whether we produce a delivery manifest
         if: inputs.slack_webhook_url != '' && failure() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
             {
@@ -143,11 +154,12 @@ jobs:
 
       - name: Delivery Manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.8.22
-        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).task_config[fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace].tasks['delivery'].timeout_in_minutes }}
+        uses: aspect-build/workflows-action@5.10.0-alpha.7
+        timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery_manifest_timout }}
         with:
             workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
             task: delivery_manifest
+            args: "--data TARGETS_SOURCE=${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}"
 
       # Upload all artifacts for the workspace
       - name: Upload Artifact
@@ -155,10 +167,11 @@ jobs:
         # Setting `continue-on-error: true` on previous steps isn't ideal as the UI
         # will flag them as having passed even if they failed.
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_prefix }}${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].task }}.artifacts
           path: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_upload_pattern }}
+          overwrite: true
 
       # Codecov
       - name: Codecov Upload
@@ -167,7 +180,7 @@ jobs:
         # will flag them as having passed even if they failed.
         if: ${{ always() && fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].codecov_upload }}
         # https://github.com/marketplace/actions/codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: bazel-out/_coverage/_coverage_report.dat
           token: ${{ secrets.CODECOV_TOKEN }}

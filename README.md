@@ -5,7 +5,7 @@ Set up your GitHub Actions workflow to run Bazel using Aspect.
 Aspect Workflows is a self-hosted runner infrastructure for
 getting best-case performance of running Bazel on your CI/CD pipeline.
 
-See https://docs.aspect.build/v/workflows for more documentation.
+See https://docs.aspect.build/workflows for more documentation.
 
 ## Setup
 
@@ -20,14 +20,18 @@ From [GitHub docs](https://docs.github.com/en/actions/using-workflows/reusing-wo
 > Called workflows that are owned by the same user or organization as the caller workflow can access
 > self-hosted runners from the caller's context.
 
-For this reason, we recommend you fork this repository into your GitHub org.
-Alternatively, you can vendor the file into your monorepo by copying
-`.github/workflows/.aspect-workflows-reusable.yaml` into the same path in your repo.
+To work around this, either:
+
+1.  Vendor the file into the repository by copying `.github/workflows/.aspect-workflows-reusable.yaml` to the same location.
+2.  Fork this repository into your GitHub organization
 
 ## Usage
 
-Edit your CI workflow, e.g. `.github/workflows/ci.yaml` to use the reusable workflow.
-It reads your `.aspect/workflows/config.yaml` to understand your Bazel CI preferences for this repo.
+Start from a standard GitHub Actions workflow file and reference Aspect Workflow's reusable workflow file.
+
+This may be a new or existing file; for example many repositories have an existing `.github/workflows/ci.yaml` file.
+
+The reusable workflow is configured via the `.aspect/workflows/config.yaml` file.
 
 If you forked the repo to your org, then replace `my-org` with your org in this snippet:
 
@@ -35,7 +39,7 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 jobs:
     aspect-workflows:
         name: Aspect Workflows
-        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.8.22
+        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.10.0-alpha.7
 ```
 
 If you vendored the file, then instead it will be:
@@ -55,6 +59,61 @@ jobs:
     aspect-workflows:
         if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'aspect-build/')
 ```
+
+## Continuous Delivery
+
+See https://docs.aspect.build/workflows/configuration/delivery for a high-level overview of the CD process.
+
+To install it, add another YAML file to create a new GitHub Actions Workflow, commonly
+`.github/workflows/aspect-workflows-delivery.yaml`.
+
+First, allow manual delivery to be triggered in the GitHub Actions web UI, collecting two user inputs (the commit SHA and targets to deliver):
+
+```yaml
+on:
+    workflow_dispatch:
+        inputs:
+            delivery_commit:
+                description: The commit to checkout and run the delivery from. Targets listed in the delivery manifest for this commit will be delivered unless specific targets are listed in `delivery_targets`.
+                type: string
+                required: true
+            delivery_targets:
+                description: List of Bazel targets to deliver, delimited by spaces. For example, \`//app/a:push_release //app/b:push_release\`. If empty, targets listed in the delivery manifest for the target commit will be delivered.
+                type: string
+                required: false
+```
+
+Now define the job. This has a few steps:
+
+1. Configure the environment.
+2. Checkout the repository at the commit to be delivered.
+3. Check that the build agent is healthy.
+4. Run Aspect Workflows 'composite action' with the `delivery` task, providing the user inputs via environment variables.
+
+```yaml
+jobs:
+    delivery:
+        name: Aspect Workflows Delivery
+        runs-on: [self-hosted, aspect-workflows, aspect-default]
+        steps:
+            - name: Configure environment
+              run: /etc/aspect/workflows/bin/configure_workflows_env
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ inputs.delivery_commit }}
+                  fetch-depth: 0
+            - name: Agent health checks
+              run: /etc/aspect/workflows/bin/agent_health_check
+            - name: Run Delivery
+              uses: aspect-build/workflows-action@5.10.0-alpha.7
+              with:
+                  task: delivery
+              env:
+                  DELIVERY_COMMIT: ${{ inputs.delivery_commit }}
+                  DELIVERY_TARGETS: ${{ inputs.delivery_targets }}
+```
+
+A full, operational example of this file: <https://github.com/aspect-build/rules_jasmine/blob/main/.github/workflows/aspect-workflows-delivery.yaml>
 
 ## Slack notifications
 
