@@ -39,7 +39,7 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 jobs:
     aspect-workflows:
         name: Aspect Workflows
-        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.10.0-rc0.dev.16.gd9e5fac
+        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.10.0-rc0.dev.16.gdac6889
 ```
 
 If you vendored the file, then instead it will be:
@@ -105,7 +105,7 @@ jobs:
             - name: Agent health check
               run: /etc/aspect/workflows/bin/agent_health_check
             - name: Run delivery
-              uses: aspect-build/workflows-action@5.10.0-rc0.dev.16.gd9e5fac
+              uses: aspect-build/workflows-action@5.10.0-rc0.dev.16.gdac6889
               with:
                   task: delivery
               env:
