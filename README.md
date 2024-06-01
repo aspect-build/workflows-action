@@ -39,7 +39,7 @@ If you forked the repo to your org, then replace `my-org` with your org in this 
 jobs:
     aspect-workflows:
         name: Aspect Workflows
-        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.10.0-rc0.dev.29.gafc3a2f
+        uses: my-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.10.0-rc1
 ```
 
 If you vendored the file, then instead it will be:
@@ -77,6 +77,11 @@ on:
                 description: The commit to checkout and run the delivery from. Targets listed in the delivery manifest for this commit will be delivered unless specific targets are listed in `delivery_targets`.
                 type: string
                 required: true
+            workspace:
+                description: The workspace to deliver from
+                type: string
+                required: false
+                default: "."
             delivery_targets:
                 description: List of Bazel targets to deliver, delimited by spaces. For example, \`//app/a:push_release //app/b:push_release\`. If empty, targets listed in the delivery manifest for the target commit will be delivered.
                 type: string
@@ -105,9 +110,10 @@ jobs:
             - name: Agent health check
               run: /etc/aspect/workflows/bin/agent_health_check
             - name: Run delivery
-              uses: aspect-build/workflows-action@5.10.0-rc0.dev.29.gafc3a2f
+              uses: aspect-build/workflows-action@5.10.0-rc1
               with:
                   task: delivery
+                  workspace: ${{ inputs.workspace }}
               env:
                   DELIVERY_COMMIT: ${{ inputs.delivery_commit }}
                   DELIVERY_TARGETS: ${{ inputs.delivery_targets }}
