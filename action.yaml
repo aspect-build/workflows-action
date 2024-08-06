@@ -17,9 +17,11 @@ inputs:
     description: additional arguments to be passed to the task instance
     required: false
     default: ''
+
 runs:
   # Declare this is a "Composite Action"
   using: "composite"
+
   steps:
     # Simple wrapper around running rosetta
     - run: |
