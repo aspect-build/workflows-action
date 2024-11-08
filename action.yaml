@@ -22,8 +22,10 @@ runs:
   using: "composite"
   steps:
     # Simple wrapper around running rosetta
+    # Set RUNNER_TRACKER_ID="" to prevent GitHub Actions from killing
+    # the Bazel server during "Complete job" step: https://github.com/actions/runner/issues/598.
     - run: |
-        rosetta run \
+        RUNNER_TRACKING_ID="" && rosetta run \
           --workspace ${{ inputs.workspace }} \
           ${{ inputs.task }} \
           ${{ inputs.args }}
