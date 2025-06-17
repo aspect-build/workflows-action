@@ -1,7 +1,7 @@
 # ==================================================================================================
-# Aspect Workflows Reusable Workflow for GitHub Actions v5.13.7
+# Aspect Workflows Reusable Workflow for GitHub Actions v5.13.9
 #
-# https://github.com/aspect-build/workflows-action/blob/5.13.7/.github/workflows/.aspect-workflows-reusable.yaml
+# https://github.com/aspect-build/workflows-action/blob/5.13.9/.github/workflows/.aspect-workflows-reusable.yaml
 #
 # At this time, GitHub Actions does not allow referencing reusable workflows from public
 # repositories in other organizations. See
@@ -37,7 +37,7 @@
 #    jobs:
 #      aspect-workflows:
 #        name: Aspect Workflows
-#        uses: my-github-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.13.7
+#        uses: my-github-org/workflows-action/.github/workflows/.aspect-workflows-reusable.yaml@5.13.9
 #    ```
 # ==================================================================================================
 name: Aspect Workflows Reusable Workflow
@@ -111,14 +111,14 @@ jobs:
       - name: Prepare archive directories
         run: rm -rf ${{ join(fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].artifact_paths, ' ') }}
       - name: Checkout health
-        uses: aspect-build/workflows-action@5.13.7
+        uses: aspect-build/workflows-action@5.13.9
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].checkout_task_timeout }}
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].has_checkout_task
         with:
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
           task: checkout
       - name: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].name }}
-        uses: aspect-build/workflows-action@5.13.7
+        uses: aspect-build/workflows-action@5.13.9
         env: ${{ inputs.inherited_secrets != '' && fromJson(steps.process_secrets.outputs.filtered_secrets) || fromJson('{}') }}
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].timeout_in_minutes }}
         with:
@@ -138,7 +138,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets[inputs.slack_webhook_url] }}
       - name: Delivery manifest
         if: fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].generate_manifest
-        uses: aspect-build/workflows-action@5.13.7
+        uses: aspect-build/workflows-action@5.13.9
         timeout-minutes: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].delivery_manifest_timeout }}
         with:
           workspace: ${{ fromJson(needs.setup.outputs.cfg).workflows_config[matrix.job].workspace }}
