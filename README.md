@@ -5,7 +5,7 @@ Set up your GitHub Actions workflow to run Bazel using Aspect.
 Aspect Workflows is a self-hosted runner infrastructure for
 getting best-case performance of running Bazel on your CI/CD pipeline.
 
-See https://docs.aspect.build/workflows for more documentation.
+See [docs.aspect.build](https://docs.aspect.build/aspect-workflows/additional-materials/reference-config) for more documentation.
 
 ## Setup
 
